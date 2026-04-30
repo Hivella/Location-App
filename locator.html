@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stella’s Location Dispatcher</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @keyframes pulse-red {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pulse-active { animation: pulse-red 2s infinite; }
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ec4899;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-rose-50 min-h-screen font-sans text-slate-800">
+
+    <div class="max-w-md mx-auto p-4 flex flex-col min-h-screen">
+        <!-- Header -->
+        <header class="text-center py-6">
+            <div class="inline-block p-4 bg-white rounded-full shadow-sm mb-2 border border-rose-100">
+                <i class="fas fa-location-arrow text-rose-500 text-2xl"></i>
+            </div>
+            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Stella's Update</h1>
+            <p class="text-rose-400 text-xs font-bold uppercase tracking-widest mt-1">Safety & Love Dispatcher</p>
+        </header>
+
+        <!-- Status Card -->
+        <div class="bg-white rounded-[2.5rem] shadow-xl p-8 mb-6 border border-rose-50 relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-4">
+                <div id="gps-indicator" class="flex items-center space-x-1 text-[10px] font-bold uppercase py-1 px-2 rounded-full bg-slate-100 text-slate-400">
+                    <span id="gps-dot" class="h-2 w-2 bg-slate-400 rounded-full"></span>
+                    <span id="gps-text">GPS Off</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col items-center mb-8">
+                <p class="text-xs font-bold text-slate-400 uppercase mb-1">Update Berikutnya</p>
+                <div id="timer-container" class="relative flex items-center justify-center">
+                    <p id="timer" class="text-5xl font-black text-slate-800 tabular-nums">60:00</p>
+                </div>
+            </div>
+
+            <!-- Location Display -->
+            <div class="bg-slate-50 rounded-3xl p-5 mb-6 border border-slate-100">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-start space-x-3">
+                        <div class="bg-rose-100 p-2 rounded-lg mt-1">
+                            <i class="fas fa-map-pin text-rose-500"></i>
+                        </div>
+                        <div>
+                            <p id="location-name" class="text-sm font-bold text-slate-700">Mencari Lokasi...</p>
+                            <p id="coords" class="text-[10px] font-mono text-slate-400 mt-1 tracking-tighter">Lat: 0.0000, Lng: 0.0000</p>
+                        </div>
+                    </div>
+                    <button onclick="requestLocation()" class="p-2 text-rose-400 hover:text-rose-600 transition-colors">
+                        <i class="fas fa-sync-alt text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- AI Message Section -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between mb-3">
+                    <p class="text-xs font-bold text-slate-400 uppercase">Pesan Sayang Stella</p>
+                    <div id="ai-loading" class="hidden"><div class="loading-spinner"></div></div>
+                </div>
+                <div class="bg-rose-50/50 rounded-2xl p-5 border border-rose-100/50 min-h-[80px] flex items-center relative">
+                    <i class="fas fa-quote-left absolute -top-2 left-4 text-rose-200 text-xl"></i>
+                    <p id="message-text" class="text-sm italic text-slate-600 leading-relaxed w-full">Menyiapkan kata-kata manis...</p>
+                </div>
+                <button onclick="generateAiMessage()" class="mt-2 text-[10px] font-bold text-rose-400 hover:text-rose-600 flex items-center">
+                    <i class="fas fa-magic mr-1"></i> Ganti Pesan
+                </button>
+            </div>
+
+            <!-- Main Button -->
+            <button id="send-btn" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-5 rounded-2xl transition-all shadow-lg shadow-rose-200 flex items-center justify-center space-x-3 active:scale-95">
+                <i class="fab fa-whatsapp text-2xl"></i>
+                <span>Kirim Lokasi Stella</span>
+            </button>
+        </div>
+
+        <!-- Configuration -->
+        <div class="bg-white rounded-[2rem] p-6 shadow-md border border-slate-50">
+            <h3 class="text-xs font-black text-slate-400 uppercase mb-4 flex items-center">
+                <i class="fas fa-sliders-h mr-2"></i> Pengaturan Dispatcher
+            </h3>
+            <div class="space-y-5">
+                <div class="flex flex-col">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Nomor WhatsApp Pacar</label>
+                    <input type="tel" id="phone-number" placeholder="Contoh: 62812345678" class="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-200 outline-none transition-all">
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Interval Pengingat</label>
+                    <select id="interval-select" class="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-200 outline-none appearance-none">
+                        <option value="60">Tiap 60 Menit</option>
+                        <option value="30">Tiap 30 Menit</option>
+                        <option value="15">Tiap 15 Menit</option>
+                        <option value="1">Mode Test (1 Menit)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <p id="error-log" class="text-[10px] text-red-400 mt-4 text-center font-medium"></p>
+        <footer class="mt-auto py-6 text-center">
+            <p class="text-[10px] text-slate-400 font-medium">Stella Olivia Lover © 2024<br>Keep this tab active to track</p>
+        </footer>
+    </div>
+
+    <script type="module">
+        const apiKey = ""; // Runtime automatically provides this
+        let timeLeft = 3600;
+        let timerId;
+        let currentCoords = { lat: 0, lng: 0 };
+        let isFetchingAi = false;
+
+        const elements = {
+            timer: document.getElementById('timer'),
+            coords: document.getElementById('coords'),
+            locationName: document.getElementById('location-name'),
+            message: document.getElementById('message-text'),
+            phone: document.getElementById('phone-number'),
+            interval: document.getElementById('interval-select'),
+            gpsText: document.getElementById('gps-text'),
+            gpsDot: document.getElementById('gps-dot'),
+            errorLog: document.getElementById('error-log'),
+            aiLoading: document.getElementById('ai-loading'),
+            sendBtn: document.getElementById('send-btn')
+        };
+
+        // 1. Initial Setup
+        window.onload = () => {
+            const savedPhone = localStorage.getItem('partnerPhone');
+            if (savedPhone) elements.phone.value = savedPhone;
+            
+            requestLocation();
+            startTimer();
+        };
+
+        // 2. Geolocation Logic
+        window.requestLocation = function() {
+            if (!navigator.geolocation) {
+                showError("Browser tidak mendukung GPS");
+                return;
+            }
+
+            elements.locationName.innerText = "Mencari...";
+            
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    updatePosData(pos);
+                    // Also start watching for real-time updates
+                    navigator.geolocation.watchPosition(updatePosData, handleGpsError, options);
+                },
+                handleGpsError,
+                options
+            );
+        }
+
+        function updatePosData(position) {
+            currentCoords.lat = position.coords.latitude;
+            currentCoords.lng = position.coords.longitude;
+            
+            elements.coords.innerText = `Lat: ${currentCoords.lat.toFixed(5)}, Lng: ${currentCoords.lng.toFixed(5)}`;
+            elements.locationName.innerText = "Lokasi Terkunci ✨";
+            
+            elements.gpsText.innerText = "GPS Aktif";
+            elements.gpsDot.className = "h-2 w-2 bg-green-500 rounded-full";
+            elements.errorLog.innerText = "";
+            
+            // Only generate message if coords were previously 0
+            if (elements.message.innerText.includes("Menyiapkan")) {
+                generateAiMessage();
+            }
+        }
+
+        function handleGpsError(err) {
+            let msg = "Gagal akses lokasi";
+            if (err.code === 1) msg = "Izin GPS ditolak. Cek setting browser.";
+            if (err.code === 3) msg = "Waktu GPS habis. Coba refresh.";
+            
+            elements.locationName.innerText = "GPS Error";
+            elements.gpsText.innerText = "GPS Error";
+            elements.gpsDot.className = "h-2 w-2 bg-red-500 rounded-full";
+            showError(msg);
+        }
+
+        // 3. AI Message Logic with Exponential Backoff
+        async function fetchWithRetry(url, options, retries = 5, backoff = 1000) {
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) throw new Error('API Error');
+                return await response.json();
+            } catch (err) {
+                if (retries > 0) {
+                    await new Promise(r => setTimeout(r, backoff));
+                    return fetchWithRetry(url, options, retries - 1, backoff * 2);
+                }
+                throw err;
+            }
+        }
+
+        window.generateAiMessage = async function() {
+            if (isFetchingAi) return;
+            isFetchingAi = true;
+            elements.aiLoading.classList.remove('hidden');
+            
+            const prompt = `Buatkan 1 kalimat pesan WhatsApp yang sangat singkat, manis, dan lucu dari Stella untuk pacarnya. Beritahu dia bahwa Stella aman di lokasi koordinat ${currentCoords.lat}, ${currentCoords.lng}. Jangan pakai tanda kutip, jangan terlalu formal. Pakai emoji sedikit.`;
+
+            try {
+                const data = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }]
+                    })
+                });
+
+                const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (aiText) {
+                    elements.message.innerText = aiText.trim();
+                } else {
+                    throw new Error("No text");
+                }
+            } catch (error) {
+                console.error(error);
+                elements.message.innerText = "Sayang, Stella aman di sini kok! Jangan kangen ya, nanti kita ketemu. ❤️";
+            } finally {
+                isFetchingAi = false;
+                elements.aiLoading.classList.add('hidden');
+            }
+        }
+
+        // 4. Timer Logic
+        function startTimer() {
+            clearInterval(timerId);
+            timeLeft = parseInt(elements.interval.value) * 60;
+            
+            timerId = setInterval(() => {
+                timeLeft--;
+                const mins = Math.floor(timeLeft / 60);
+                const secs = timeLeft % 60;
+                elements.timer.innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
+                
+                if (timeLeft <= 0) {
+                    onTimerFinished();
+                }
+            }, 1000);
+        }
+
+        function onTimerFinished() {
+            document.getElementById('timer-container').classList.add('pulse-active');
+            generateAiMessage();
+            // Optional: browser notification or sound would go here
+        }
+
+        // 5. WhatsApp Sending
+        elements.sendBtn.onclick = () => {
+            const phone = elements.phone.value.replace(/\D/g, '');
+            if (!phone || phone.length < 10) {
+                showError("Masukkan nomor WA pacar yang valid (628...)");
+                return;
+            }
+            
+            localStorage.setItem('partnerPhone', phone);
+            
+            const msg = elements.message.innerText;
+            const mapLink = `https://www.google.com/maps?q=${currentCoords.lat},${currentCoords.lng}`;
+            const finalMsg = encodeURIComponent(`${msg}\n\n📍 Lokasi Stella:\n${mapLink}`);
+            
+            window.open(`https://wa.me/${phone}?text=${finalMsg}`, '_blank');
+            
+            // Reset state
+            document.getElementById('timer-container').classList.remove('pulse-active');
+            startTimer();
+        };
+
+        function showError(text) {
+            elements.errorLog.innerText = text;
+            setTimeout(() => elements.errorLog.innerText = "", 5000);
+        }
+
+        elements.interval.onchange = startTimer;
+
+    </script>
+</body>
+</html>
